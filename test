@@ -1,97 +1,73 @@
-
-resource "aws_s3_bucket" "examplebucket" {
-  bucket = "atua-bucket-test"
-  acl    = "private"
+resource "aws_iam_role" "codedeploy" {
+  name               = "atua-codedeploy"
+    assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "",
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codedeploy.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
 }
 
-resource "aws_s3_bucket_object" "codepipeline_bucket" {
-  key                    = "atua-api"
-  bucket                 = aws_s3_bucket.examplebucket.id
-  server_side_encryption = "aws:kms"
+
+resource "aws_codedeploy_app" "atua" {
+  compute_platform = "ECS"
+  name             = "atua"
 }
 
+resource "aws_codedeploy_deployment_group" "atua" {
+  app_name               = aws_codedeploy_app.atua.name
+  deployment_config_name = "CodeDeployDefault.ECSAllAtOnce"
+  deployment_group_name  = "atua"
+  service_role_arn       = aws_iam_role.codedeploy.arn
 
-resource "aws_codepipeline" "bar" {
-  name     = "tf-test-pipeline"
-  role_arn = aws_iam_role.ecs_task_execution_role.arn
-
-  artifact_store {
-    location = aws_s3_bucket_object.codepipeline_bucket.bucket
-    type     = "S3"
-
+  auto_rollback_configuration {
+    enabled = true
+    events  = ["DEPLOYMENT_FAILURE"]
   }
 
-  stage {
-    name = "Source"
+  blue_green_deployment_config {
+    deployment_ready_option {
+      action_on_timeout = "CONTINUE_DEPLOYMENT"
+    }
 
-    action {
-      name             = "Source"
-      category         = "Source"
-      owner            = "ThirdParty"
-      provider         = "GitHub"
-      version          = "1"
-      output_artifacts = ["test"]
-
-      configuration = {
-        Owner  = "BuscameLids"
-        Repo   = "atua-back"
-        Branch = "development"
-      }
+    terminate_blue_instances_on_deployment_success {
+      action                           = "TERMINATE"
+      termination_wait_time_in_minutes = 5
     }
   }
 
-  stage {
-    name = "Build"
+  deployment_style {
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+    deployment_type   = "BLUE_GREEN"
+  }
 
-    action {
-      name            = "Build"
-      category        = "Build"
-      owner           = "AWS"
-      provider        = "CodeBuild"
-      input_artifacts = ["test"]
-      version         = "1"
+  ecs_service {
+    cluster_name = aws_ecs_cluster.main.name
+    service_name = aws_ecs_service.main.name
+  }
 
-      configuration = {
-        ProjectName = "test"
+  load_balancer_info {
+    target_group_pair_info {
+      prod_traffic_route {
+        listener_arns = [aws_alb_listener.front_end.arn]
+      }
+
+      target_group {
+        name = aws_alb_target_group.app.name
+      }
+
+      target_group {
+        name = aws_alb_target_group.app.name
       }
     }
   }
-}
-
-# A shared secret between GitHub and AWS that allows AWS
-# CodePipeline to authenticate the request came from GitHub.
-# Would probably be better to pull this from the environment
-# or something like SSM Parameter Store.
-locals {
-  webhook_secret = var.github_token
-}
-
-resource "aws_codepipeline_webhook" "bar" {
-  name            = "test-webhook-github-bar"
-  authentication  = "GITHUB_HMAC"
-  target_action   = "Source"
-  target_pipeline = aws_codepipeline.bar.name
-
-  authentication_configuration {
-    secret_token = local.webhook_secret
-  }
-
-  filter {
-    json_path    = "$.ref"
-    match_equals = "refs/heads/{Branch}"
-  }
-}
-
-# Wire the CodePipeline webhook into a GitHub repository.
-resource "github_repository_webhook" "bar" {
-  repository = "atua-back"
-
-  configuration {
-    url          = aws_codepipeline_webhook.bar.url
-    content_type = "json"
-    insecure_ssl = true
-    secret       = local.webhook_secret
-  }
-
-  events = ["push"]
 }
