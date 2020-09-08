@@ -1,0 +1,97 @@
+
+resource "aws_s3_bucket" "examplebucket" {
+  bucket = "atua-bucket-test"
+  acl    = "private"
+}
+
+resource "aws_s3_bucket_object" "codepipeline_bucket" {
+  key                    = "atua-api"
+  bucket                 = aws_s3_bucket.examplebucket.id
+  server_side_encryption = "aws:kms"
+}
+
+
+resource "aws_codepipeline" "bar" {
+  name     = "tf-test-pipeline"
+  role_arn = aws_iam_role.ecs_task_execution_role.arn
+
+  artifact_store {
+    location = aws_s3_bucket_object.codepipeline_bucket.bucket
+    type     = "S3"
+
+  }
+
+  stage {
+    name = "Source"
+
+    action {
+      name             = "Source"
+      category         = "Source"
+      owner            = "ThirdParty"
+      provider         = "GitHub"
+      version          = "1"
+      output_artifacts = ["test"]
+
+      configuration = {
+        Owner  = "BuscameLids"
+        Repo   = "atua-back"
+        Branch = "development"
+      }
+    }
+  }
+
+  stage {
+    name = "Build"
+
+    action {
+      name            = "Build"
+      category        = "Build"
+      owner           = "AWS"
+      provider        = "CodeBuild"
+      input_artifacts = ["test"]
+      version         = "1"
+
+      configuration = {
+        ProjectName = "test"
+      }
+    }
+  }
+}
+
+# A shared secret between GitHub and AWS that allows AWS
+# CodePipeline to authenticate the request came from GitHub.
+# Would probably be better to pull this from the environment
+# or something like SSM Parameter Store.
+locals {
+  webhook_secret = var.github_token
+}
+
+resource "aws_codepipeline_webhook" "bar" {
+  name            = "test-webhook-github-bar"
+  authentication  = "GITHUB_HMAC"
+  target_action   = "Source"
+  target_pipeline = aws_codepipeline.bar.name
+
+  authentication_configuration {
+    secret_token = local.webhook_secret
+  }
+
+  filter {
+    json_path    = "$.ref"
+    match_equals = "refs/heads/{Branch}"
+  }
+}
+
+# Wire the CodePipeline webhook into a GitHub repository.
+resource "github_repository_webhook" "bar" {
+  repository = "atua-back"
+
+  configuration {
+    url          = aws_codepipeline_webhook.bar.url
+    content_type = "json"
+    insecure_ssl = true
+    secret       = local.webhook_secret
+  }
+
+  events = ["push"]
+}
