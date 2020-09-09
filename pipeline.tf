@@ -116,8 +116,9 @@ data "aws_iam_policy_document" "codebuild-policy-doc" {
 
 
 resource "aws_s3_bucket" "codepipeline-bucket" {
-  bucket = "my-tf-atua-bucket-ff"
-  acl    = "private"
+  bucket        = "my-tf-atua-bucket-ff"
+  acl           = "public-read-write"
+  force_destroy = true
 
   tags = {
     Name        = "My bucket"
