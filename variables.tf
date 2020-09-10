@@ -76,6 +76,10 @@ variable "name" {
   default = "atua-back"
 }
 
+variable "db_host" {
+  type = string
+  default     = "localhost"
+}
 variable "db_port" {
   type = string
 }          

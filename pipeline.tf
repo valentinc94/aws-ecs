@@ -33,9 +33,30 @@ resource "aws_iam_role" "pipeline" {
 EOF
 }
 
+## Build rol
+
+resource "aws_iam_role" "build" {
+  name = "codebuild"
+  # Only codebuild.amazonaws.com can assume this role
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Service": "codebuild.amazonaws.com"
+      },
+      "Action": "sts:AssumeRole"
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_iam_role_policy" "codebuild-policy" {
   name = "codebuild-policy"
-  role = aws_iam_role.pipeline.id
+  role = aws_iam_role.build.id
   policy = data.aws_iam_policy_document.codebuild-policy-doc.json
 }
 
@@ -117,7 +138,8 @@ data "aws_iam_policy_document" "codebuild-policy-doc" {
 
 resource "aws_s3_bucket" "codepipeline-bucket" {
   bucket = "my-tf-atua-bucket-ff"
-  acl    = "private"
+  acl    = "public-read-write"
+  force_destroy = true
 
   tags = {
     Name        = "My bucket"
@@ -226,13 +248,13 @@ data "aws_iam_policy_document" "codepipeline-policy-doc" {
 }
 
 
-
 ###  end ########
 
 resource "aws_codepipeline" "api" {
   name     = "api-pipeline"
   role_arn = aws_iam_role.pipeline.arn
 
+  
   artifact_store {
     type     = "S3"
     location = aws_s3_bucket.codepipeline-bucket.bucket
@@ -323,26 +345,6 @@ resource "aws_codepipeline_webhook" "api" {
   target_pipeline = aws_codepipeline.api.name
 }
 
-## Build rol
-
-resource "aws_iam_role" "build" {
-  name = "codebuild"
-  # Only codebuild.amazonaws.com can assume this role
-  assume_role_policy = <<EOF
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "codebuild.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
-}
 
 #################### Code build ###################
 
@@ -412,7 +414,7 @@ resource "aws_codebuild_project" "api" {
 
 resource "aws_iam_role" "codedeploy" {
   name               = "atua-codedeploy"
-    assume_role_policy = <<EOF
+  assume_role_policy = <<EOF
 {
   "Version": "2012-10-17",
   "Statement": [
@@ -427,6 +429,82 @@ resource "aws_iam_role" "codedeploy" {
   ]
 }
 EOF
+}
+
+// AWS IAM Role Policy in format JSON for codeploy
+data "aws_iam_policy_document" "ecs_codedeploy_role_policy" {
+  statement {
+    effect    = "Allow"
+    resources = ["*"]
+
+    actions = [
+      "ecs:DescribeServices",
+      "ecs:CreateTaskSet",
+      "ecs:UpdateServicePrimaryTaskSet",
+      "ecs:DeleteTaskSet",
+      "elasticloadbalancing:DescribeTargetGroups",
+      "elasticloadbalancing:DescribeListeners",
+      "elasticloadbalancing:ModifyListener",
+      "elasticloadbalancing:DescribeRules",
+      "elasticloadbalancing:ModifyRule",
+      "lambda:InvokeFunction",
+      "cloudwatch:DescribeAlarms",
+      "sns:Publish",
+      "s3:GetObject",
+      "s3:GetObjectMetadata",
+      "s3:GetObjectVersion",
+    ]
+  }
+}
+
+// Aditional Role policy Iam:passROLE for execute task
+data "aws_iam_policy_document" "ecs_codedeploy_role_policy_task" {
+  statement {
+    effect    = "Allow"
+    resources = [aws_iam_role.ecs_task_execution_role.arn]
+
+    actions = [
+      "iam:PassRole",
+    ]
+  }
+}
+
+// ECS Codedeploy policy to execute ecs task
+data "aws_iam_policy_document" "ecs_codedeploy_role_policy_task_exec" {
+  statement {
+    effect    = "Allow"
+    resources = [aws_iam_role.ecs_task_execution_role.arn]
+
+    actions = [
+      "iam:PassRole",
+    ]
+  }
+}
+
+// AWS IAM Role Policy used for codedeploy
+resource "aws_iam_role_policy_attachment" "AWSCodeDeployRole" {
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+  role       = aws_iam_role.codedeploy.name
+}
+
+// AWS IAM Role Policy used for ecs codedeploy
+resource "aws_iam_role_policy" "ecs_codedeploy_role_policy" {
+  name   = "ecs_codedeploy_role_policy"
+  policy = data.aws_iam_policy_document.ecs_codedeploy_role_policy.json
+  role   = aws_iam_role.codedeploy.id
+}
+
+// Attach policies for codedeploy run task, drain, etc
+resource "aws_iam_role_policy" "ecs_codedeploy_role_policy_task" {
+  name   = "ecs_codedeploy_role_policy_task"
+  policy = data.aws_iam_policy_document.ecs_codedeploy_role_policy_task.json
+  role   = aws_iam_role.codedeploy.id
+}
+
+resource "aws_iam_role_policy" "ecs_codedeploy_role_policy_task_exec" {
+  name   = "ecs_codedeploy_role_policy_task_exec"
+  policy = data.aws_iam_policy_document.ecs_codedeploy_role_policy_task_exec.json
+  role   = aws_iam_role.codedeploy.id
 }
 
 
@@ -447,6 +525,14 @@ resource "aws_codedeploy_deployment_config" "atua" {
       percentage = 10
     }
   }
+}
+
+
+resource "aws_lb_target_group" "second-api" {
+  name     = "tf-api-lb-tg"
+  port     = 80
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
 }
 
 resource "aws_codedeploy_deployment_group" "atua" {
@@ -497,7 +583,7 @@ resource "aws_codedeploy_deployment_group" "atua" {
       }
 
       target_group {
-        name = aws_alb_target_group.app.name
+        name = aws_lb_target_group.second-api.name
       }
     }
   }

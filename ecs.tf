@@ -80,6 +80,7 @@ resource "aws_ecs_task_definition" "app" {
 
 }
 
+
 resource "aws_ecs_service" "main" {
   name            = "cb-service"
   cluster         = aws_ecs_cluster.main.id
@@ -97,6 +98,10 @@ resource "aws_ecs_service" "main" {
     target_group_arn = aws_alb_target_group.app.id
     container_name   = "cb-app"
     container_port   = var.app_port
+  }
+
+  deployment_controller {
+    type = "CODE_DEPLOY"
   }
 
   depends_on = [aws_alb_listener.front_end, aws_iam_role_policy_attachment.ecs_task_execution_role]

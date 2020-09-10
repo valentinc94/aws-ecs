@@ -1,0 +1,8 @@
+
+errores actuales:
+
+COMMAND_EXECUTION_ERROR: Error while executing command: docker build --cache-from $REPO_URI:latest --tag $REPO_URI:latest --tag $REPO_URI:$IMAGE_TAG .. Reason: exit status 125
+
+COMMAND_EXECUTION_ERROR: Error while executing command: docker run --rm -e DJANGO_SETTINGS_MODULE='ATUA.settings.test' -e DJ_SECRET_KEY='TEST' $REPO_URI:latest sh test.sh. Reason: exit status 125
+
+CLIENT_ERROR: no matching artifact paths found
