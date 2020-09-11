@@ -8,6 +8,39 @@ resource "aws_ecr_repository" "atua" {
   }
 }
 
+resource "aws_ecr_repository_policy" "foopolicy" {
+  repository = aws_ecr_repository.atua.name
+
+  policy = <<EOF
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "new policy",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:PutImage",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload",
+                "ecr:DescribeRepositories",
+                "ecr:GetRepositoryPolicy",
+                "ecr:ListImages",
+                "ecr:DeleteRepository",
+                "ecr:BatchDeleteImage",
+                "ecr:SetRepositoryPolicy",
+                "ecr:DeleteRepositoryPolicy"
+            ]
+        }
+    ]
+}
+EOF
+}
+
 resource "aws_kms_key" "codepipeline" {
   description             = "KMS key 1"
   deletion_window_in_days = 10
@@ -348,6 +381,22 @@ resource "aws_codepipeline_webhook" "api" {
 
 #################### Code build ###################
 
+locals {
+  settings_module = join(".", ["ATUA.settings", var.branch])
+  api_port        = 8080
+
+  # Remove the port in the RDS endpoint
+  db_host         = element(split(":", var.db_host), 0)
+
+  command = [
+    "sh",
+    "run.sh",
+  ]
+}
+
+
+#### locals
+
 resource "aws_codebuild_project" "api" {
   name           = "api"
   queued_timeout = "60"
@@ -383,6 +432,51 @@ resource "aws_codebuild_project" "api" {
       name = "REPOSITORY_URI"
       value = aws_ecr_repository.atua.repository_url
     }
+    environment_variable {
+      name = "IMAGE_REPO_NAME"
+      value = aws_ecr_repository.atua.name
+    }
+    environment_variable {
+      name = "AWS_REGION"
+      value = var.aws_region
+    }
+    environment_variable {
+      name = "AWS_ACCOUNT_ID"
+      value = var.aws_account_id
+    }
+    environment_variable {
+      name = "DJANGO_SECRET_KEY"
+      value = var.django_secret_key
+    }
+    environment_variable {
+      name = "DB_HOST"
+      value = local.db_host
+    }
+    environment_variable {
+      name = "DB_NAME"
+      value = var.db_name
+    }
+    environment_variable {
+      name = "DB_USER"
+      value = var.db_user
+    }
+    environment_variable {
+      name = "DB_PASSWORD"
+      value = var.db_password
+    }
+    environment_variable {
+      name = "DB_PORT"
+      value = var.db_port
+    }
+    environment_variable {
+      name = "DJANGO_SETTINGS_MODULE"
+      value = local.settings_module
+    }
+    environment_variable {
+      name = "IMAGE_TAG"
+      value = var.image
+    }
+    
   }
 
   source {

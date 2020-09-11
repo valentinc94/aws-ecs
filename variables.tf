@@ -69,6 +69,12 @@ variable "branch" {
   default     = "development"
 }
 
+variable "image" {
+  type        = string
+  description = "Branch of the GitHub repository, _e.g._ `master`"
+  default     = "latest"
+}
+
 # atua-back
 variable "name" {
   type        = string
