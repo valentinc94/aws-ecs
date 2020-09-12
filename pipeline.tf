@@ -325,7 +325,7 @@ resource "aws_codepipeline" "api" {
       input_artifacts  = ["SourceArtifact"]
       name             = "Build"
       namespace        = "BuildVariables"
-      output_artifacts = ["BuildArtifact"]
+      output_artifacts = ["imagedefinitions"]
       owner            = "AWS"
       provider         = "CodeBuild"
       region           = var.aws_region
@@ -344,7 +344,7 @@ resource "aws_codepipeline" "api" {
     action {
       category = "Deploy"
 
-      input_artifacts = ["BuildArtifact"]
+      input_artifacts = ["imagedefinitions"]
       name            = "Deploy"
       namespace       = "DeployVariables"
       owner           = "AWS"
@@ -356,6 +356,7 @@ resource "aws_codepipeline" "api" {
       configuration = {
         ClusterName = aws_ecs_cluster.main.name
         ServiceName = aws_ecs_service.main.name
+        FileName    = "imagedefinitions.json"
       }
     }
   }
@@ -536,6 +537,7 @@ data "aws_iam_policy_document" "ecs_codedeploy_role_policy" {
       "ecs:CreateTaskSet",
       "ecs:UpdateServicePrimaryTaskSet",
       "ecs:DeleteTaskSet",
+      "ecs:*",
       "elasticloadbalancing:DescribeTargetGroups",
       "elasticloadbalancing:DescribeListeners",
       "elasticloadbalancing:ModifyListener",
@@ -577,7 +579,7 @@ data "aws_iam_policy_document" "ecs_codedeploy_role_policy_task_exec" {
 
 // AWS IAM Role Policy used for codedeploy
 resource "aws_iam_role_policy_attachment" "AWSCodeDeployRole" {
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSCodeDeployRole"
+  policy_arn = "arn:aws:iam::aws:policy/AWSCodeDeployRoleForECS"
   role       = aws_iam_role.codedeploy.name
 }
 
@@ -607,79 +609,79 @@ resource "aws_codedeploy_app" "atua" {
   name             = "atua"
 }
 
-resource "aws_codedeploy_deployment_config" "atua" {
-  deployment_config_name = "atua-deployment-config"
-  compute_platform       = "ECS"
+#resource "aws_codedeploy_deployment_config" "atua" {
+#  deployment_config_name = "atua-deployment-config"
+#  compute_platform       = "ECS"
 
-  traffic_routing_config {
-    type = "TimeBasedLinear"
+#  traffic_routing_config {
+#    type = "TimeBasedLinear"
 
-    time_based_linear {
-      interval   = 10
-      percentage = 10
-    }
-  }
-}
+#    time_based_linear {
+#      interval   = 10
+#      percentage = 10
+#    }
+#  }
+#}
 
 
-resource "aws_lb_target_group" "second-api" {
-  name     = "tf-api-lb-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = aws_vpc.main.id
-}
+#resource "aws_lb_target_group" "second-api" {
+#  name     = "tf-api-lb-tg"
+#  port     = 80
+#  protocol = "HTTP"
+#  vpc_id   = aws_vpc.main.id
+#}
 
-resource "aws_codedeploy_deployment_group" "atua" {
-  app_name               = aws_codedeploy_app.atua.name
-  deployment_group_name  = "atua"
-  service_role_arn       = aws_iam_role.codedeploy.arn
-  deployment_config_name = aws_codedeploy_deployment_config.atua.id
+#resource "aws_codedeploy_deployment_group" "atua" {
+#  app_name               = aws_codedeploy_app.atua.name
+#  deployment_group_name  = "atua"
+#  service_role_arn       = aws_iam_role.codedeploy.arn
+#  deployment_config_name = aws_codedeploy_deployment_config.atua.id
 
-  auto_rollback_configuration {
-    enabled = true
-    events  = ["DEPLOYMENT_STOP_ON_ALARM"]
-  }
+#  auto_rollback_configuration {
+#    enabled = true
+#    events  = ["DEPLOYMENT_STOP_ON_ALARM"]
+#  }
 
-  blue_green_deployment_config {
-    deployment_ready_option {
-      action_on_timeout = "CONTINUE_DEPLOYMENT"
-    }
+#  blue_green_deployment_config {
+#    deployment_ready_option {
+#      action_on_timeout = "CONTINUE_DEPLOYMENT"
+#    }
 
-    terminate_blue_instances_on_deployment_success {
-      action                           = "TERMINATE"
-      termination_wait_time_in_minutes = 5
-    }
-  }
+#    terminate_blue_instances_on_deployment_success {
+#      action                           = "TERMINATE"
+#      termination_wait_time_in_minutes = 5
+#    }
+#  }
 
-  deployment_style {
-    deployment_option = "WITH_TRAFFIC_CONTROL"
-    deployment_type   = "BLUE_GREEN"
-  }
+#  deployment_style {
+#    deployment_option = "WITH_TRAFFIC_CONTROL"
+#    deployment_type   = "BLUE_GREEN"
+#  }
 
-  ecs_service {
-    cluster_name = aws_ecs_cluster.main.name
-    service_name = aws_ecs_service.main.name
-  }
+#  ecs_service {
+#    cluster_name = aws_ecs_cluster.main.name
+#    service_name = aws_ecs_service.main.name
+#  }
   
-  alarm_configuration {
-    alarms  = ["alert-api"]
-    enabled = true
-  }
+#  alarm_configuration {
+#    alarms  = ["alert-api"]
+#    enabled = true
+#  }
 
-  load_balancer_info {
-    target_group_pair_info {
-      prod_traffic_route {
-        listener_arns = [aws_alb_listener.front_end.arn]
-      }
+#  load_balancer_info {
+#    target_group_pair_info {
+#      prod_traffic_route {
+#        listener_arns = [aws_alb_listener.front_end.arn]
+#      }
 
-      target_group {
-        name = aws_alb_target_group.app.name
-      }
+#      target_group {
+#        name = aws_alb_target_group.app.name
+#      }
 
-      target_group {
-        name = aws_lb_target_group.second-api.name
-      }
-    }
-  }
+#      target_group {
+#        name = aws_lb_target_group.second-api.name
+#      }
+#    }
+#  }
 
-}
+#}
