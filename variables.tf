@@ -20,7 +20,7 @@ variable "az_count" {
 
 variable "app_image" {
   description = "Docker image to run in the ECS cluster"
-  default     = "nginx:latest"
+  default     = "nginx-api:latest"
 }
 
 variable "app_port" {
@@ -53,6 +53,11 @@ variable "api_version" {
   description = "The api_version of the API"
 }
 
+# logs
+
+variable "log_retention_in_days" {
+  default = 30
+}
 
 variable "aws_account_id"{}
 variable "aws_profile"{}

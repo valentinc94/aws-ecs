@@ -36,3 +36,71 @@ resource "aws_ecs_task_definition" "app" {
   }
 
 }
+(Task failed ELB health checks in (target-group arn:aws:elasticloadbalancing:us-east-1:170054446405:targetgroup/cb-target-group/dd8170473ba4bf15))
+
+ Task failed ELB health checks in (target-group arn:aws:elasticloadbalancing:us-east-1:170054446405:targetgroup/cb-target-group/ab9808b077fe862f)
+
+ClientException: When networkMode=awsvpc, the host ports and container ports in port mappings must match.
+
+[
+  {
+    "name": "cb-app",
+    "image": "cb-app:latest",
+    "cpu": ${fargate_cpu},
+    "memory": ${fargate_memory},
+    "networkMode": "awsvpc",
+    "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/cb-app",
+          "awslogs-region": "${aws_region}",
+          "awslogs-stream-prefix": "ecs"
+        }
+    },
+    "environment": [
+    {
+      "name": "DJANGO_SECRET_KEY",
+      "value": "21+p)jxz_v846@ub2351@z^fv08hsi125bfd3n!f@ytt21$efh"
+    }
+    ],
+    "portMappings": [
+      {
+        "containerPort": 8000,
+        "hostPort": 0,
+        "protocol": "tcp"
+      }
+    ]
+  },
+  {
+    "name": "nginx",
+    "image": "${app_image}",
+    "cpu": ${fargate_cpu},
+    "memory": ${fargate_memory},
+    "networkMode": "awsvpc",
+    "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/nginx",
+          "awslogs-region": "${aws_region}",
+          "awslogs-stream-prefix": "ecs"
+        }
+    },
+    "portMappings": [
+      {
+        "containerPort": ${app_port},
+        "hostPort": ${app_port}
+      }
+    ]
+  }
+]
+
+b-appf3b1da59cfea7ae6ec7b34e82e956e3a0978ef8b2f618587b753e35325692a7aRUNNING170054446405.dkr.ecr.us-east-1.amazonaws.com/atua-api:latestsha256:0f20e4d20f21c4aec7b6200d9fca535ebe97a8189091d7e8f4b9657429d6738610512/--true62a6aec1-ff2b-476a-97c2-2c2162457406
+nginxe68690d197473af094b1b15b22e2660aef806f90dcacde1ba87997084ff325d6RUNNINGnginx:latest
+
+#170054446405.dkr.ecr.us-east-1.amazonaws.com/nginx-api  asi va completo por si imagen on template falla
+
+
+Error: InvalidParameterException: The container nginx-api does not exist in the task definition. "cb-service"
+
+  on ecs.tf line 74, in resource "aws_ecs_service" "main":
+  74: resource "aws_ecs_service" "main" {

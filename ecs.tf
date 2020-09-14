@@ -68,18 +68,6 @@ resource "aws_ecs_task_definition" "app" {
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_execution_role.arn
   
-  #proxy_configuration {
-  #  type           = "APPMESH"
-  #  container_name = "cb-app"
-  #  properties = {
-  #    AppPorts         = "8080"
-  #    EgressIgnoredIPs = "169.254.170.2,169.254.169.254"
-  #    IgnoredUID       = "1337"
-  #    ProxyEgressPort  = 15001
-  #    ProxyIngressPort = 15000
-  #  }
-  #}
-
 }
 
 
@@ -99,13 +87,9 @@ resource "aws_ecs_service" "main" {
 
   load_balancer {
     target_group_arn = aws_alb_target_group.app.id
-    container_name   = "cb-app"
+    container_name   = "nginx-api"
     container_port   = var.app_port
   }
-
-  #deployment_controller {
-  #  type = "CODE_DEPLOY"
-  #}
 
   depends_on = [aws_alb_listener.front_end, aws_iam_role_policy_attachment.ecs_task_execution_role]
 }

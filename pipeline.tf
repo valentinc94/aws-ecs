@@ -8,6 +8,49 @@ resource "aws_ecr_repository" "atua" {
   }
 }
 
+resource "aws_ecr_repository" "nginx" {
+  name                 = "nginx-api"
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+}
+
+resource "aws_ecr_repository_policy" "nginx-policy" {
+  repository = aws_ecr_repository.nginx.name
+
+  policy = <<EOF
+{
+    "Version": "2008-10-17",
+    "Statement": [
+        {
+            "Sid": "new policy",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": [
+                "ecr:GetDownloadUrlForLayer",
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability",
+                "ecr:PutImage",
+                "ecr:InitiateLayerUpload",
+                "ecr:UploadLayerPart",
+                "ecr:CompleteLayerUpload",
+                "ecr:DescribeRepositories",
+                "ecr:GetRepositoryPolicy",
+                "ecr:ListImages",
+                "ecr:DeleteRepository",
+                "ecr:BatchDeleteImage",
+                "ecr:SetRepositoryPolicy",
+                "ecr:DeleteRepositoryPolicy"
+            ]
+        }
+    ]
+}
+EOF
+}
+
+
 resource "aws_ecr_repository_policy" "foopolicy" {
   repository = aws_ecr_repository.atua.name
 
@@ -141,6 +184,7 @@ data "aws_iam_policy_document" "codebuild-policy-doc" {
     effect = "Allow"
     resources = [
       aws_ecr_repository.atua.arn,
+      aws_ecr_repository.nginx.arn,
     ]
     actions = [
       "ecr:BatchGetImage",
@@ -170,7 +214,7 @@ data "aws_iam_policy_document" "codebuild-policy-doc" {
 
 
 resource "aws_s3_bucket" "codepipeline-bucket" {
-  bucket = "my-tf-atua-bucket-ff"
+  bucket = "atua-static"
   acl    = "public-read-write"
   force_destroy = true
 
@@ -275,7 +319,8 @@ data "aws_iam_policy_document" "codepipeline-policy-doc" {
       "ecr:DescribeImages"
     ]
     resources = [
-      aws_ecr_repository.atua.arn
+      aws_ecr_repository.atua.arn,
+      aws_ecr_repository.nginx.arn,
     ]
   }
 }
@@ -384,7 +429,7 @@ resource "aws_codepipeline_webhook" "api" {
 
 locals {
   settings_module = join(".", ["ATUA.settings", var.branch])
-  api_port        = 8080
+  api_port        = 8000
 
   # Remove the port in the RDS endpoint
   db_host         = element(split(":", var.db_host), 0)
@@ -476,6 +521,10 @@ resource "aws_codebuild_project" "api" {
     environment_variable {
       name = "IMAGE_TAG"
       value = var.image
+    }
+    environment_variable {
+      name = "REPOSITORY_NGINX"
+      value = aws_ecr_repository.nginx.repository_url
     }
     
   }
@@ -608,80 +657,3 @@ resource "aws_codedeploy_app" "atua" {
   compute_platform = "ECS"
   name             = "atua"
 }
-
-#resource "aws_codedeploy_deployment_config" "atua" {
-#  deployment_config_name = "atua-deployment-config"
-#  compute_platform       = "ECS"
-
-#  traffic_routing_config {
-#    type = "TimeBasedLinear"
-
-#    time_based_linear {
-#      interval   = 10
-#      percentage = 10
-#    }
-#  }
-#}
-
-
-#resource "aws_lb_target_group" "second-api" {
-#  name     = "tf-api-lb-tg"
-#  port     = 80
-#  protocol = "HTTP"
-#  vpc_id   = aws_vpc.main.id
-#}
-
-#resource "aws_codedeploy_deployment_group" "atua" {
-#  app_name               = aws_codedeploy_app.atua.name
-#  deployment_group_name  = "atua"
-#  service_role_arn       = aws_iam_role.codedeploy.arn
-#  deployment_config_name = aws_codedeploy_deployment_config.atua.id
-
-#  auto_rollback_configuration {
-#    enabled = true
-#    events  = ["DEPLOYMENT_STOP_ON_ALARM"]
-#  }
-
-#  blue_green_deployment_config {
-#    deployment_ready_option {
-#      action_on_timeout = "CONTINUE_DEPLOYMENT"
-#    }
-
-#    terminate_blue_instances_on_deployment_success {
-#      action                           = "TERMINATE"
-#      termination_wait_time_in_minutes = 5
-#    }
-#  }
-
-#  deployment_style {
-#    deployment_option = "WITH_TRAFFIC_CONTROL"
-#    deployment_type   = "BLUE_GREEN"
-#  }
-
-#  ecs_service {
-#    cluster_name = aws_ecs_cluster.main.name
-#    service_name = aws_ecs_service.main.name
-#  }
-  
-#  alarm_configuration {
-#    alarms  = ["alert-api"]
-#    enabled = true
-#  }
-
-#  load_balancer_info {
-#    target_group_pair_info {
-#      prod_traffic_route {
-#        listener_arns = [aws_alb_listener.front_end.arn]
-#      }
-
-#      target_group {
-#        name = aws_alb_target_group.app.name
-#      }
-
-#      target_group {
-#        name = aws_lb_target_group.second-api.name
-#      }
-#    }
-#  }
-
-#}
