@@ -106,4 +106,12 @@ variable "db_password" {
 variable "django_secret_key" {
   type = string
 }
+variable "DJANGO_SETTINGS_MODULE" {
+  type = string
+}
+
+variable "rds_instance_class" {
+  description = "RDS instance type"
+  default     = "db.t2.micro"
+}
 

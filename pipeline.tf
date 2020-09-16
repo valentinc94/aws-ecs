@@ -496,7 +496,7 @@ resource "aws_codebuild_project" "api" {
     }
     environment_variable {
       name = "DB_HOST"
-      value = local.db_host
+      value = aws_db_instance.production.address
     }
     environment_variable {
       name = "DB_NAME"

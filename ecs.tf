@@ -11,6 +11,16 @@ data "template_file" "cb_app" {
     fargate_cpu    = var.fargate_cpu
     fargate_memory = var.fargate_memory
     aws_region     = var.aws_region
+    aws_access_key = var.aws_access_key
+    aws_secret_key = var.aws_secret_key
+    django_secret_key = var.django_secret_key
+    DJANGO_SETTINGS_MODULE = var.DJANGO_SETTINGS_MODULE
+    DB_NAME = var.db_name
+    DB_USER = var.db_user
+    DB_PASSWORD = var.db_password
+    DB_PORT = var.db_port
+    RDS_HOSTNAME = aws_db_instance.production.address
+
   }
 }
 

@@ -11,12 +11,44 @@
           "awslogs-group": "/ecs/cb-app",
           "awslogs-region": "${aws_region}",
           "awslogs-stream-prefix": "ecs"
-        }
+        }    
     },
     "environment": [
     {
       "name": "DJANGO_SECRET_KEY",
-      "value": "21+p)jxz_v846@ub2351@z^fv08hsi125bfd3n!f@ytt21$efh"
+      "value": "${django_secret_key}"
+    },
+    {
+      "name": "AWS_ACCESS_KEY_ID",
+      "value": "${aws_access_key}"
+    },
+    {
+      "name": "AWS_SECRET_ACCESS_KEY",
+      "value": "${aws_secret_key}"
+    },
+    {
+      "name": "DJANGO_SETTINGS_MODULE",
+      "value": "${DJANGO_SETTINGS_MODULE}"
+    },
+    {
+      "name": "RDS_HOSTNAME",
+      "value": "${rds_hostname}"
+    },
+    {
+      "name": "DB_NAME",
+      "value": "${DB_NAME}"
+    },
+    {
+      "name": "DB_USER",
+      "value": "${DB_USER}"
+    },
+    {
+      "name": "DB_PASSWORD",
+      "value": "${DB_PASSWORD}"
+    },
+    {
+      "name": "DB_PORT",
+      "value": "${DB_PORT}"
     }
     ],
     "portMappings": [
