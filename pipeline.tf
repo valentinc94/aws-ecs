@@ -136,6 +136,11 @@ resource "aws_iam_role_policy" "codebuild-policy" {
   policy = data.aws_iam_policy_document.codebuild-policy-doc.json
 }
 
+resource "aws_iam_role_policy_attachment" "build" {
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+  role       = aws_iam_role.build.id
+}
+
 data "aws_iam_policy_document" "codebuild-policy-doc" {
   version = "2012-10-17"
 
@@ -427,20 +432,6 @@ resource "aws_codepipeline_webhook" "api" {
 
 #################### Code build ###################
 
-locals {
-  settings_module = join(".", ["ATUA.settings", var.branch])
-  api_port        = 8000
-
-  # Remove the port in the RDS endpoint
-  db_host         = element(split(":", var.db_host), 0)
-
-  command = [
-    "sh",
-    "run.sh",
-  ]
-}
-
-
 #### locals
 
 resource "aws_codebuild_project" "api" {
@@ -516,7 +507,7 @@ resource "aws_codebuild_project" "api" {
     }
     environment_variable {
       name = "DJANGO_SETTINGS_MODULE"
-      value = local.settings_module
+      value = var.DJANGO_SETTINGS_MODULE
     }
     environment_variable {
       name = "IMAGE_TAG"

@@ -32,7 +32,7 @@
     },
     {
       "name": "RDS_HOSTNAME",
-      "value": "${rds_hostname}"
+      "value": "${RDS_HOSTNAME}"
     },
     {
       "name": "DB_NAME",

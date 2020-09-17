@@ -21,7 +21,7 @@ resource "aws_security_group" "rds" {
 
 resource "aws_db_subnet_group" "production" {
   name       = "main"
-  subnet_ids = [aws_subnet.private.*.id]
+  subnet_ids = aws_subnet.private.*.id
 }
 
 resource "aws_db_instance" "production" {

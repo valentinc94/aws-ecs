@@ -1,0 +1,6 @@
+ACCESS_DENIED: Service role arn:aws:iam::170054446405:role/codebuild
+ does not allow AWS CodeBuild to create Amazon CloudWatch Logs log streams
+  for build arn:aws:codebuild:us-east-1:170054446405:build/api:7a291f31-2889-45b9-807e-5043329dacf2.
+   Error message: User: arn:aws:sts::170054446405:assumed-role/codebuild/AWSCodeBuild-7a291f31-2889-45b9-807e-5043329dacf2
+    is not authorized to perform: logs:CreateLogStream on resource: 
+    arn:aws:logs:us-east-1:170054446405:log-group:/ecs/cb-app:log-stream:api/7a291f31-2889-45b9-807e-5043329dacf2

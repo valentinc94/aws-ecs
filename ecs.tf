@@ -45,7 +45,7 @@ EOF
 }
 
 resource "aws_iam_policy" "policy" {
-  name        = "test-policy"
+  name        = "ecs-policy"
   description = "A test policy"
   policy = <<EOF
 {
