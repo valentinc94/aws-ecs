@@ -49,6 +49,14 @@
     {
       "name": "DB_PORT",
       "value": "${DB_PORT}"
+    },
+    {
+      "name": "mercadopago_app_id",
+      "value": "${mercadopago_app_id}"
+    },
+    {
+      "name": "mercadopago_secret_key",
+      "value": "${mercadopago_secret_key}"
     }
     ],
     "portMappings": [

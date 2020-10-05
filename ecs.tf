@@ -20,6 +20,8 @@ data "template_file" "cb_app" {
     DB_PASSWORD = var.db_password
     DB_PORT = var.db_port
     RDS_HOSTNAME = aws_db_instance.production.address
+    mercadopago_app_id = var.mercadopago_app_id
+    mercadopago_secret_key = var.mercadopago_secret_key
 
   }
 }

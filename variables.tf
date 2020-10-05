@@ -109,6 +109,12 @@ variable "django_secret_key" {
 variable "DJANGO_SETTINGS_MODULE" {
   type = string
 }
+variable "mercadopago_app_id" {
+  type = string
+}
+variable "mercadopago_secret_key" {
+  type = string
+}
 
 variable "rds_instance_class" {
   description = "RDS instance type"

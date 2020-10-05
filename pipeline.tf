@@ -361,7 +361,7 @@ resource "aws_codepipeline" "api" {
         OAuthToken           = var.github_token
         Branch               = var.branch
         Owner                = "BuscameLids"
-        PollForSourceChanges = "false"
+        PollForSourceChanges = "true"
         Repo                 = "atua-back"
       }
     }
