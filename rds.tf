@@ -39,6 +39,7 @@ resource "aws_db_instance" "production" {
   db_subnet_group_name    = aws_db_subnet_group.production.name
   multi_az                = false
   storage_type            = "gp2"
+  #true
   publicly_accessible     = false
   backup_retention_period = 7
   skip_final_snapshot     = true

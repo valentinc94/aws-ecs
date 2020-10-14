@@ -116,6 +116,14 @@ variable "mercadopago_secret_key" {
   type = string
 }
 
+variable "SSH_PUBLIC_KEY" {
+  type = string
+}
+
+variable "USER_PASS" {
+  type = string
+}
+
 variable "rds_instance_class" {
   description = "RDS instance type"
   default     = "db.t2.micro"

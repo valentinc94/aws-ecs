@@ -517,6 +517,15 @@ resource "aws_codebuild_project" "api" {
       name = "REPOSITORY_NGINX"
       value = aws_ecr_repository.nginx.repository_url
     }
+    environment_variable {
+      name = "SSH_PUBLIC_KEY"
+      value = var.SSH_PUBLIC_KEY
+    }
+
+    environment_variable {
+      name = "USER_PASS"
+      value = var.USER_PASS
+    }
     
   }
 

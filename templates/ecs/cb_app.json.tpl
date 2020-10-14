@@ -57,6 +57,14 @@
     {
       "name": "mercadopago_secret_key",
       "value": "${mercadopago_secret_key}"
+    },
+    {
+      "name": "SSH_PUBLIC_KEY",
+      "value": "${SSH_PUBLIC_KEY}"
+    },
+    {
+      "name": "USER_PASS",
+      "value": "${USER_PASS}"
     }
     ],
     "portMappings": [

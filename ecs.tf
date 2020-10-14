@@ -22,6 +22,8 @@ data "template_file" "cb_app" {
     RDS_HOSTNAME = aws_db_instance.production.address
     mercadopago_app_id = var.mercadopago_app_id
     mercadopago_secret_key = var.mercadopago_secret_key
+    SSH_PUBLIC_KEY = var.SSH_PUBLIC_KEY
+    USER_PASS = var.USER_PASS
 
   }
 }
