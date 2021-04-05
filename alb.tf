@@ -22,11 +22,32 @@ resource "aws_alb_target_group" "app" {
   }
 }
 
-# Redirect all traffic from the ALB to the target group
+# Redirect all traffic from the ALB to the HTTPS
 resource "aws_alb_listener" "front_end" {
   load_balancer_arn = aws_alb.main.id
   port              = var.app_port
   protocol          = "HTTP"
+
+  default_action {
+    type             = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+
+    }
+  }
+}
+
+
+# Fordward all traffic from the ALB to the target group
+resource "aws_alb_listener" "front_end_https" {
+  load_balancer_arn = aws_alb.main.id
+  port              = 443
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = "arn:aws:acm:us-east-1:170054446405:certificate/7fd00ad9-59ce-4af1-9ce4-8df5812449f8"
 
   default_action {
     target_group_arn = aws_alb_target_group.app.id

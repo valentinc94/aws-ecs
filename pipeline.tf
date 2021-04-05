@@ -1,4 +1,3 @@
-
 resource "aws_ecr_repository" "atua" {
   name                 = "atua-api"
   image_tag_mutability = "MUTABLE"
